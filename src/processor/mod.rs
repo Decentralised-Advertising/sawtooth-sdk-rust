@@ -59,23 +59,21 @@ fn generate_correlation_id() -> String {
     rand::thread_rng().gen_ascii_chars().take(LENGTH).collect()
 }
 
-pub struct TransactionProcessor<'a, C: TransactionContext, T: TransactionHandler<C>> {
+pub struct TransactionProcessor<'a> {
     endpoint: String,
     conn: ZmqMessageConnection,
-    handlers: Vec<&'a T>,
-    phantom: PhantomData<&'a C>,
+    handlers: Vec<&'a dyn TransactionHandler<ZmqTransactionContext>>,
 }
 
-impl<'a, C: TransactionContext, T: TransactionHandler<C>> TransactionProcessor<'a, C, T> {
+impl<'a> TransactionProcessor<'a> {
     /// TransactionProcessor is for communicating with a
     /// validator and routing transaction processing requests to a registered
     /// handler. It uses ZMQ and channels to handle requests concurrently.
-    pub fn new(endpoint: &str) -> TransactionProcessor<C, T> {
+    pub fn new(endpoint: &str) -> Self {
         TransactionProcessor {
             endpoint: String::from(endpoint),
             conn: ZmqMessageConnection::new(endpoint),
             handlers: Vec::new(),
-            phantom: PhantomData,
         }
     }
 
@@ -84,7 +82,7 @@ impl<'a, C: TransactionContext, T: TransactionHandler<C>> TransactionProcessor<'
     /// # Arguments
     ///
     /// * handler - the handler to be added
-    pub fn add_handler(&mut self, handler: &'a T) {
+    pub fn add_handler(&mut self, handler: &'a dyn TransactionHandler<ZmqTransactionContext>) {
         self.handlers.push(handler);
     }
 
@@ -240,7 +238,7 @@ impl<'a, C: TransactionContext, T: TransactionHandler<C>> TransactionProcessor<'
                                         }
                                     };
 
-                                let mut context = C::new(
+                                let mut context = ZmqTransactionContext::new(
                                     request.get_context_id(),
                                     sender.clone(),
                                 );
