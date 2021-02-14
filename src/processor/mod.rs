@@ -49,8 +49,9 @@ use protobuf::Message as M;
 use protobuf::RepeatedField;
 
 use self::handler::ApplyError;
-use self::handler::TransactionHandler;
+use self::handler::{TransactionContext, TransactionHandler};
 use self::zmq_context::ZmqTransactionContext;
+use std::marker::PhantomData;
 
 /// Generates a random correlation id for use in Message
 fn generate_correlation_id() -> String {
@@ -58,21 +59,23 @@ fn generate_correlation_id() -> String {
     rand::thread_rng().gen_ascii_chars().take(LENGTH).collect()
 }
 
-pub struct TransactionProcessor<'a> {
+pub struct TransactionProcessor<'a, C: TransactionContext, T: TransactionHandler<C>> {
     endpoint: String,
     conn: ZmqMessageConnection,
-    handlers: Vec<&'a dyn TransactionHandler>,
+    handlers: Vec<&'a T>,
+    phantom: PhantomData<&'a C>,
 }
 
-impl<'a> TransactionProcessor<'a> {
+impl<'a, C: TransactionContext, T: TransactionHandler<C>> TransactionProcessor<'a, C, T> {
     /// TransactionProcessor is for communicating with a
     /// validator and routing transaction processing requests to a registered
     /// handler. It uses ZMQ and channels to handle requests concurrently.
-    pub fn new(endpoint: &str) -> TransactionProcessor {
+    pub fn new(endpoint: &str) -> TransactionProcessor<C, T> {
         TransactionProcessor {
             endpoint: String::from(endpoint),
             conn: ZmqMessageConnection::new(endpoint),
             handlers: Vec::new(),
+            phantom: PhantomData,
         }
     }
 
@@ -81,7 +84,7 @@ impl<'a> TransactionProcessor<'a> {
     /// # Arguments
     ///
     /// * handler - the handler to be added
-    pub fn add_handler(&mut self, handler: &'a dyn TransactionHandler) {
+    pub fn add_handler(&mut self, handler: &'a T) {
         self.handlers.push(handler);
     }
 
@@ -237,7 +240,7 @@ impl<'a> TransactionProcessor<'a> {
                                         }
                                     };
 
-                                let mut context = ZmqTransactionContext::new(
+                                let mut context = C::new(
                                     request.get_context_id(),
                                     sender.clone(),
                                 );

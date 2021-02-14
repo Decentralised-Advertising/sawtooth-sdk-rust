@@ -35,7 +35,7 @@ pub struct ZmqTransactionContext {
     sender: ZmqMessageSender,
 }
 
-impl ZmqTransactionContext {
+impl TransactionContext for ZmqTransactionContext {
     /// Context provides an interface for getting, setting, and deleting
     /// validator state. All validator interactions by a handler should be
     /// through a Context instance.
@@ -44,15 +44,13 @@ impl ZmqTransactionContext {
     ///
     /// * `sender` - for client grpc communication
     /// * `context_id` - the context_id passed in from the validator
-    pub fn new(context_id: &str, sender: ZmqMessageSender) -> Self {
+    fn new(context_id: &str, sender: ZmqMessageSender) -> Self {
         ZmqTransactionContext {
             context_id: String::from(context_id),
             sender,
         }
     }
-}
 
-impl TransactionContext for ZmqTransactionContext {
     /// get_state_entries queries the validator state for data at each of the
     /// addresses in the given list. The addresses that have been set
     /// are returned.

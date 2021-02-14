@@ -28,6 +28,7 @@ use std::error::Error as StdError;
 use crate::messages::processor::TpProcessRequest;
 use crate::messaging::stream::ReceiveError;
 use crate::messaging::stream::SendError;
+use crate::messaging::zmq_stream::ZmqMessageSender;
 
 #[derive(Debug)]
 pub enum ApplyError {
@@ -121,7 +122,10 @@ impl From<ReceiveError> for ContextError {
     }
 }
 
-pub trait TransactionContext {
+pub trait TransactionContext: Clone {
+    /// Returns a new instance of the TransactionHandler.
+    fn new(context_id: &str, sender: ZmqMessageSender) -> Self;
+
     #[deprecated(
         since = "0.3.0",
         note = "please use `get_state_entry` or `get_state_entries` instead"
@@ -262,7 +266,7 @@ pub trait TransactionContext {
     ) -> Result<(), ContextError>;
 }
 
-pub trait TransactionHandler {
+pub trait TransactionHandler<T: TransactionContext> {
     /// TransactionHandler that defines the business logic for a new transaction family.
     /// The family_name, family_versions, and namespaces functions are
     /// used by the processor to route processing requests to the handler.
@@ -284,9 +288,5 @@ pub trait TransactionHandler {
     /// transaction processor upon receiving a TpProcessRequest that the
     /// handler understands and will pass in the TpProcessRequest and an
     /// initialized instance of the Context type.
-    fn apply(
-        &self,
-        request: &TpProcessRequest,
-        context: &mut dyn TransactionContext,
-    ) -> Result<(), ApplyError>;
+    fn apply(&self, request: &TpProcessRequest, context: &mut T) -> Result<(), ApplyError>;
 }
