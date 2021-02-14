@@ -122,7 +122,7 @@ impl From<ReceiveError> for ContextError {
     }
 }
 
-pub trait TransactionContext: Clone {
+pub trait TransactionContext {
     #[deprecated(
         since = "0.3.0",
         note = "please use `get_state_entry` or `get_state_entries` instead"
