@@ -122,7 +122,7 @@ impl From<ReceiveError> for ContextError {
     }
 }
 
-pub trait TransactionContext {
+pub trait TransactionContext: Clone {
     /// Returns a new instance of the TransactionHandler.
     fn new(context_id: &str, sender: ZmqMessageSender) -> Self;
 
