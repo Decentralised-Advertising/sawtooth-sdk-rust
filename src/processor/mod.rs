@@ -30,7 +30,7 @@ use std::time::Duration;
 use self::rand::Rng;
 
 pub mod handler;
-mod zmq_context;
+pub mod zmq_context;
 
 use crate::messages::network::PingResponse;
 use crate::messages::processor::TpProcessRequest;
